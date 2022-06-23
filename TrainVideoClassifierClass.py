@@ -4,26 +4,23 @@ import pickle
 import numpy as np
 import tensorflow as tf
 from keras_video import VideoFrameGenerator
-from tensorflow.keras.models import Model
-from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
-from tensorflow.keras.layers import Conv2D, BatchNormalization, AveragePooling2D, GlobalAvgPool2D, TimeDistributed, \
-    Dense, Add, RNN, LSTMCell
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
 
 def deep_network(self):  # this function is used to encapsulate the CNN model in the time distributed layer, and append
     # the LSTM and Dense layers to the TDL layer
-    model_ = tf.keras.Sequential()
     if self.CNNModel == 1:  # based on the model chosen during the class initialization, the proper CNN will be selected
         featuresExt = CNN1(self.size[1:])
     elif self.CNNModel == 2:
         featuresExt = CNN2(self.size[1:])
     else:
         featuresExt = CNN3(self.size[1:])
-    model_.add(TimeDistributed(featuresExt, input_shape=self.size))  # encapsulating the CNN model in the TDL layer
-    model_.add(RNN(LSTMCell(self.LSTMNeurons)))  # adding the LSTM layer
-    model_.add(Dense(self.DenseNeurons, activation='relu'))  # adding the Dense layer
-    model_.add(Dense(self.nClasses, activation='softmax'))  # last layer performs the classification of the input
+    input_shape = tf.keras.layers.Input(self.size)
+    TD = tf.keras.layers.TimeDistributed(featuresExt)(input_shape)  # encapsulating the CNN model in the TDL layer
+    RNN = tf.keras.layers.RNN(tf.keras.layers.LSTMCell(self.LSTMNeurons))(TD)  # adding the LSTM layer
+    Dense1 = tf.keras.layers.Dense(self.DenseNeurons, activation='relu')(RNN)  # adding the Dense layer
+    Dense2 = tf.keras.layers.Dense(self.nClasses, activation='softmax')(Dense1)  # last layer performs the classification of the input
+    model_ = tf.keras.models.Model(inputs=input_shape, outputs=Dense2)
     model_.summary()
     return model_
 
@@ -33,34 +30,34 @@ def CNN1(shape):  # Lightest model: 5 blocks of convolutional blocks with batch 
     # layer is used to flatten the outputs
     momentum = .8
     input_img = tf.keras.Input(shape)
-    x0 = Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Add()([x, x0])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x1 = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Add()([x, x1])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = GlobalAvgPool2D()(x)
-    model = Model(input_img, x)
+    x0 = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x0])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x1 = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x1])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.GlobalAvgPool2D()(x)
+    model = tf.keras.models.Model(input_img, x)
     return model
 
 
@@ -69,43 +66,43 @@ def CNN2(shape):  # Default model: 6 blocks of convolutional blocks with batch n
     # layer is used to flatten the outputs
     momentum = .8
     input_img = tf.keras.Input(shape)
-    x0 = Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Add()([x, x0])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x1 = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Add()([x, x1])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x2 = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x2)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Add()([x, x2])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = GlobalAvgPool2D()(x)
-    model = Model(input_img, x)
+    x0 = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x0])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x1 = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x1])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x2 = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x2)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x2])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.GlobalAvgPool2D()(x)
+    model = tf.keras.models.Model(input_img, x)
     return model
 
 
@@ -114,53 +111,53 @@ def CNN3(shape):  # Heaviest model: 7 blocks of convolutional blocks with batch 
     # layer is used to flatten the outputs
     momentum = .8
     input_img = tf.keras.Input(shape)
-    x0 = Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(8, (3, 3), padding='same', activation='relu')(x)
-    x = Add()([x, x0])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x1 = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(16, (3, 3), padding='same', activation='relu')(x)
-    x = Add()([x, x1])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x2 = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x2)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Conv2D(32, (3, 3), padding='same', activation='relu')(x)
-    x = Add()([x, x2])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x3 = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x3)
-    x = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Add()([x, x3])
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = AveragePooling2D((2, 2), padding='same')(x)
-    x = Conv2D(512, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    x = GlobalAvgPool2D()(x)
-    model = Model(input_img, x)
+    x0 = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x0])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x1 = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x1])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x2 = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x2)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x2])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x3 = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x3)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x3])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(512, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.GlobalAvgPool2D()(x)
+    model = tf.keras.models.Model(input_img, x)
     return model
 
 
@@ -202,7 +199,7 @@ def oneFoldTraining(self):  # function to train the model with only one split of
     print('Test accuracy: ', acc_fine)
     # save the fine-tuned model
     model2save = os.path.join(self.saveResPath, "{}_Model{}.h5".format(self.transformation, self.CNNModel))
-    fine_model.save(model2save)
+    fine_model.save_weights(model2save)
 
 
 def stratifiedKFoldTraining(self):  # function to train the models along the folds
@@ -248,6 +245,8 @@ def stratifiedKFoldTraining(self):  # function to train the models along the fol
             self.transformation, fo, self.CNNModel))
         fine_model.save(model2save)
         fo += 1
+        if fo == self.nFolds:
+            break
     # save the dictionary of the test data
     name2save = os.path.join(self.saveResPath, "X_Test_{}_StratifiedKFolds_Model{}.pkl".format(self.transformation,
                                                                                                self.CNNModel))
@@ -401,10 +400,10 @@ class TrainVideoClassifierClass:
             os.mkdir(self.tensorboardLogDir)
         # callbacks for the fit function. The first one is use during the first training, applying a early stop criterion,
         # and saving the log for visualizing the tensorboard
-        self.callbacks = [EarlyStopping(patience=self.patience, monitor='val_loss'), LearningRateReducerCb(),
-                          TensorBoard(log_dir=self.tensorboardLogDir)]
+        self.callbacks = [tf.keras.callbacks.EarlyStopping(patience=self.patience, monitor='val_loss'), LearningRateReducerCb(),
+                          tf.keras.callbacks.TensorBoard(log_dir=self.tensorboardLogDir)]
         # The second callback is used during the fine-tuning procedure to reduce the learning rate along the epochs
-        self.callbacksFineTuning = [LearningRateReducerCbFineTuning(), TensorBoard(log_dir=self.tensorboardLogDir)]
+        self.callbacksFineTuning = [LearningRateReducerCbFineTuning(), tf.keras.callbacks.TensorBoard(log_dir=self.tensorboardLogDir)]
 
         self.LSTMNeurons = 128
         self.DenseNeurons = 64

@@ -8,10 +8,162 @@ from sklearn.preprocessing import label_binarize
 from sklearn.metrics import roc_curve, auc, confusion_matrix
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from tensorflow.python.keras import models
 from keras_video import VideoFrameGenerator
 config = tf.compat.v1.ConfigProto(log_device_placement=True)
 config.gpu_options.allow_growth = True
+
+
+def deep_network(self):  # this function is used to encapsulate the CNN model in the time distributed layer, and append
+    # the LSTM and Dense layers to the TDL layer
+    if self.CNNModel == 1:  # based on the model chosen during the class initialization, the proper CNN will be selected
+        featuresExt = CNN1(self.inputSize[1:])
+    elif self.CNNModel == 2:
+        featuresExt = CNN2(self.inputSize[1:])
+    else:
+        featuresExt = CNN3(self.inputSize[1:])
+    input_shape = tf.keras.layers.Input(self.inputSize)
+    TD = tf.keras.layers.TimeDistributed(featuresExt)(input_shape)  # encapsulating the CNN model in the TDL layer
+    RNN = tf.keras.layers.RNN(tf.keras.layers.LSTMCell(128))(TD)  # adding the LSTM layer
+    Dense1 = tf.keras.layers.Dense(64, activation='relu')(RNN)  # adding the Dense layer
+    Dense2 = tf.keras.layers.Dense(5, activation='softmax')(Dense1)  # last layer performs the classification of the input
+    model_ = tf.keras.models.Model(inputs=input_shape, outputs=Dense2)
+    return model_
+
+
+def CNN1(shape):  # Lightest model: 5 blocks of convolutional blocks with batch normalization and average pooling layers.
+    # The input of the first three blocks are summed with the output of the blocks. At the end, the global average pooling
+    # layer is used to flatten the outputs
+    momentum = .8
+    input_img = tf.keras.Input(shape)
+    x0 = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x0])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x1 = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x1])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.GlobalAvgPool2D()(x)
+    model = tf.keras.models.Model(input_img, x)
+    return model
+
+
+def CNN2(shape):  # Default model: 6 blocks of convolutional blocks with batch normalization and average pooling layers.
+    # The input of the first three blocks are summed with the output of the blocks. At the end, the global average pooling
+    # layer is used to flatten the outputs
+    momentum = .8
+    input_img = tf.keras.Input(shape)
+    x0 = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x0])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x1 = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x1])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x2 = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x2)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x2])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.GlobalAvgPool2D()(x)
+    model = tf.keras.models.Model(input_img, x)
+    return model
+
+
+def CNN3(shape):  # Heaviest model: 7 blocks of convolutional blocks with batch normalization and average pooling layers.
+    # The input of the first three blocks are summed with the output of the blocks. At the end, the global average pooling
+    # layer is used to flatten the outputs
+    momentum = .8
+    input_img = tf.keras.Input(shape)
+    x0 = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(input_img)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x0)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x0])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x1 = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x1)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x1])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x2 = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x2)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x2])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x3 = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x3)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Add()([x, x3])
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(256, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.AveragePooling2D((2, 2), padding='same')(x)
+    x = tf.keras.layers.Conv2D(512, (3, 3), input_shape=shape, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization(momentum=momentum)(x)
+    x = tf.keras.layers.GlobalAvgPool2D()(x)
+    model = tf.keras.models.Model(input_img, x)
+    return model
 
 
 def visualizeConfMatrix(self, cm):  # Function plotting the confusion matrix
@@ -119,6 +271,7 @@ class AnalyzeResultsClass:
     - xTestPath: the path/file containing the names of the data that form the test set. It can be a pickle file or a path of the folder with the data to be tested
     - transformation: the transformation applied to the original dataset. It is used to check if the model path, the video path, and the test path are consistent
     - classesNames: list containing the names of the classes for plotting the results
+    - CNNModel: model that has to be trained (default is model 2). Possible choices are in the range 1-3
     """
     def __init__(self,
                  modelPath: str = None,  # The model to be analyzed
@@ -126,7 +279,8 @@ class AnalyzeResultsClass:
                  stratifiedKFolds: bool = True,  # variable that identifies if stratified KFolds has been used
                  xTestPath: str = None,  # path containing the names of data used as test set
                  transformation: str = None,  # transformation applied to the original dataset
-                 classesNames: list = None  # name of classes, used for plotting the results
+                 classesNames: list = None,  # name of classes, used for plotting the results
+                 CNNModel: int = 2
                  ):
         assert os.path.exists(videoDatasetPath), "Dataset does not exist"  # check if the dataset exist
         self.dataPath = videoDatasetPath + '/{classname}/*.avi'  # used by keras video generator
@@ -153,10 +307,16 @@ class AnalyzeResultsClass:
         # check if the models' path exists
         assert os.path.exists(modelPath), "Model path does not exist"
         self.globModels = glob.glob(modelPath + '/*')
+
+        self.CNNModel = CNNModel
+        if not 1 <= self.CNNModel <= 3:
+            print("CNN Model option not valid: default assigned")
+            self.CNNModel = 2
+
         # delete useless files from globModels
         indexToDel = []
         for i, m in enumerate(self.globModels):
-            if ".h5" not in m:
+            if ".h5" not in m or "Model"+str(self.CNNModel) not in m:
                 indexToDel.append(i)
             else:
                 if stratifiedKFolds:  # the names of the models must contain "Fold" string
@@ -204,10 +364,17 @@ class AnalyzeResultsClass:
             print("Test {} model without KFolds".format(self.transformation))
         self.stratifiedKFolds = stratifiedKFolds
 
+        self.inputSize = (15, 224, 224)  # size of the input model.
+        channels = 1
+        if transformation == "No_Trans":  # No Transformation is the only one with 3 channels (RGB)
+            channels = 3
+        self.inputSize = self.inputSize + (channels,)  # add the channel to the size of the input videos
+
     def testModels(self):  # function used to print the accuracy on the test set for each model contained in globModels
         testAccList = []
         for mod in self.globModels:
-            model = models.load_model(mod)
+            model = deep_network(self)
+            model.load_weights(mod)
             inputSize = model.inputs[0].shape[1:]  # take the input tensor size
             print("Testing {}".format(mod.split('/')[-1]))
             if self.stratifiedKFolds:
@@ -225,6 +392,9 @@ class AnalyzeResultsClass:
             testAccTmp = 1 - np.count_nonzero(y_pred - true_labels) / len(y_pred)
             print('Test accuracy:', testAccTmp)
             testAccList.append(testAccTmp)
+        testAccArray = np.asarray(testAccList)
+        modelName = self.globModels[0].split('_')[-1].split('.')[0]
+        print("Average Accuracy {}: {} +- {}".format(modelName, np.mean(testAccArray), np.std(testAccArray)))
         return testAccList
 
     def confusion_matrix(self):  # Function used to plot the confusion matrix
@@ -234,7 +404,8 @@ class AnalyzeResultsClass:
         else:
             print("Computing Confusion Matrix {}".format(self.transformation))
         for mod in self.globModels:
-            model = models.load_model(mod)
+            model = deep_network(self)
+            model.load_weights(mod)
             inputSize = model.inputs[0].shape[1:]  # Take the input tensor size
             if self.stratifiedKFolds:
                 # Take the correct dataset to test the model along the folds
@@ -273,7 +444,8 @@ class AnalyzeResultsClass:
             print("Computing ROC and AUC Curves {}".format(self.transformation))
         ii = 0
         for mod in self.globModels:
-            model = models.load_model(mod)
+            model = deep_network(self)
+            model.load_weights(mod)
             inputSize = model.inputs[0].shape[1:]  # Take the input tensor size
             if self.stratifiedKFolds:
                 # Take the correct dataset to test the model along the folds
@@ -314,7 +486,8 @@ class AnalyzeResultsClass:
             # Check if the positive labels are correct
             assert i < self.nClasses, "the labels of positive samples are bigger than the number of classes"
         for i, mod in enumerate(self.globModels):
-            model = models.load_model(mod)
+            model = deep_network(self)
+            model.load_weights(mod)
             inputSize = model.inputs[0].shape
             if self.stratifiedKFolds:
                 # Take the correct dataset to test the model along the folds

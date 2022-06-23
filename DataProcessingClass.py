@@ -17,6 +17,7 @@ def CannyTrans(imPath):
 # Sobel XY Transformation
 def SobelXY(imPath):
     mg = cv2.imread(imPath)
+
     img_gray = cv2.cvtColor(mg, cv2.COLOR_BGR2GRAY)
     sobelXY = cv2.Sobel(src=img_gray, ddepth=cv2.CV_64F, dx=1, dy=1,
                         ksize=5)
@@ -93,6 +94,7 @@ class ImagesTransformationClass:
                   "assigned by default")
             self.transformation = "No_Trans"
         else:
+            print("Transforming data by {} transformation".format(transformation))
             self.transformation = transformation
 
         assert os.path.exists(imagesInputPath), "Input images path does not exist"
@@ -164,5 +166,6 @@ class ImagesTransformationClass:
         else:
             out = cv2.VideoWriter(name, fourcc, fps, (width, height))
         for i in range(len(frames)):
-            out.write(frames[i])
+            tmp = np.uint8(frames[i])
+            out.write(tmp)
         out.release()
