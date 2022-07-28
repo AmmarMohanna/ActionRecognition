@@ -4,6 +4,8 @@ It resulted the publication titled:
 
 > Edge Multi-Class Human Action Recognition System Based on Deep Learning Using a Low-Cost Radar for Indoor Safety
 
+![NN](https://user-images.githubusercontent.com/32446816/181509833-d30ea2ea-fbd6-4a38-b20f-cc7be8428f52.png)
+
 You can find all data here that were collected in the reseach process here: https://www.kaggle.com/datasets/ammarmohanna/edgeactionrecognition
 
 ### Here is a quick overview of the files included in this repository
