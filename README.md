@@ -15,6 +15,7 @@ You can find all data here that were collected in the reseach process here: http
 <br/><br/>
 
 2. The script *DataProcessingClass* is responsible for generating the 5 different image transformations mentioned in Section 2.B of the paper
+<br/><br/>
 ![Untitled](https://user-images.githubusercontent.com/32446816/181508622-bb9d617a-c0fb-455a-8b84-7bb6b8bd0685.png)
 <br/><br/>
 
