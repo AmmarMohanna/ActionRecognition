@@ -1,4 +1,4 @@
-# EdgeActionRecognition
+# Edge Action Recognition
 This work presented in the folders was used during a research process.
 It resulted the publication titled: 
 
